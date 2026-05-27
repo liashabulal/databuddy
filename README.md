@@ -16,21 +16,11 @@ Unlike a fixed EDA script, DataBuddy reasons about your specific dataset
 it receives.
 
 ## Why is this interesting?
-Every dataset is different. A fixed script runs the same operations 
+Every dataset is different. A fixed EDA script runs the same operations 
 regardless of whether they make sense. DataBuddy treats EDA as a 
-reasoning problem — the agent observes the data, selects appropriate 
+reasoning problem and then the agent observes the data, selects appropriate 
 tools, sequences them logically, and synthesises results into actionable 
 insights.
-
-The central research question this project investigates:
-
-> *How much initial structure does an LLM agent need to make reliable, 
-> explainable EDA decisions?*
-
-When prompted with an open-ended EDA request, the agent autonomously 
-sequences tool calls — structure → missingness → distributions → 
-correlations → recommendations — without explicit ordering instructions. 
-This emergent behaviour is the phenomenon under investigation.
 
 ## How it works
 - **17 specialised tools** — each covering a specific EDA operation 
