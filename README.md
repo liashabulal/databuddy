@@ -5,7 +5,7 @@ An LLM-powered EDA agent that reasons about your data and decides
 which analyses to run — no code required.
 
 🔴 [Live Demo](https://huggingface.co/spaces/liashabulal/databuddy) · 
-📄 [Technical Report](./technical_report.pdf)
+📄 [Technical Report](EDA_Agent__Technical_Report.pdf)
 
 ## What is DataBuddy?
 DataBuddy is a dataset-agnostic Exploratory Data Analysis agent. 
