@@ -1,5 +1,3 @@
-# databuddy
-
 # DataBuddy 🐾
 An LLM-powered EDA agent that reasons about your data and decides 
 which analyses to run — no code required.
