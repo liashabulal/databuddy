@@ -16,8 +16,8 @@ metrics_df['sequence_quality'] = df.apply(
 
 LEVEL_ORDER = ['minimal', 'current', 'enhanced']
 LEVEL_LABELS = {'minimal': 'Minimal', 'current': 'Current', 'enhanced': 'Structured'}
-LEVEL_COLORS = {'minimal': '#B8C9D9', 'current': '#5C1A2E', 'enhanced': '#F5E6C8'}
-BACKGROUND = '#FDFAF4'
+LEVEL_COLORS = {'minimal': '#CCCCCC', 'current': '#4A90D9', 'enhanced': '#2E7D32'}
+BACKGROUND = '#FFFFFF'
 
 
 def mean_and_ci95(values):
@@ -109,10 +109,12 @@ plt.close()
 
 print('Figure 2 saved to figures/figure2_first_tool.png')
 
-MATCHED_COLOR = '#8FB89A'
-MISSED_COLOR = '#C97B76'
 INK = '#2C2C2A'
-TEXT_ON_DARK = '#F5E6C8'
+FIG3_BLACK = '#1A1A1A'
+FIG3_GREY_BORDER = '#9E9E9E'
+MATCHED_BORDER = '#2E7D32'
+MISSED_BORDER = '#C62828'
+CALC_BG = '#F0F0F0'
 
 reference_tools = [
     'get_missing_values', 'get_dtypes', 'get_descriptive_stats', 'get_preprocessing_recommendations'
@@ -125,7 +127,17 @@ recall = len(matched_tools) / len(reference_tools)
 f1_example = 2 * precision * recall / (precision + recall)
 
 
-def draw_tool_row(ax, tools, y, box_w, box_h, gap, colors):
+def wrap_tool_name(name, max_line=16):
+    if len(name) <= max_line:
+        return name
+    mid = len(name) // 2
+    split_at = name.rfind('_', 0, mid + 4)
+    if split_at == -1:
+        return name
+    return name[:split_at] + '\n' + name[split_at + 1:]
+
+
+def draw_tool_row(ax, tools, y, box_w, box_h, gap, border_colors):
     n = len(tools)
     total_w = n * box_w + (n - 1) * gap
     start_x = 5 - total_w / 2
@@ -133,70 +145,70 @@ def draw_tool_row(ax, tools, y, box_w, box_h, gap, colors):
         x = start_x + i * (box_w + gap)
         box = FancyBboxPatch(
             (x, y), box_w, box_h,
-            boxstyle="round,pad=0.02,rounding_size=0.08",
-            linewidth=1.5, edgecolor='#5C1A2E', facecolor=colors[i]
+            boxstyle="round,pad=0.02,rounding_size=0.05",
+            linewidth=1.3, edgecolor=border_colors[i], facecolor='#FFFFFF'
         )
         ax.add_patch(box)
         ax.text(
-            x + box_w / 2, y + box_h / 2, tool, ha='center', va='center',
-            fontsize=8.5, color=INK, wrap=True
+            x + box_w / 2, y + box_h / 2, wrap_tool_name(tool), ha='center', va='center',
+            fontsize=6.3, color=FIG3_BLACK, linespacing=1.3
         )
 
 
-fig3, ax = plt.subplots(figsize=(11, 8))
-fig3.patch.set_facecolor(BACKGROUND)
+fig3, ax = plt.subplots(figsize=(6.5, 3.6))
+fig3.patch.set_facecolor('#FFFFFF')
 ax.set_xlim(0, 10)
-ax.set_ylim(0, 10)
+ax.set_ylim(2.9, 10.2)
 ax.axis('off')
-ax.set_facecolor(BACKGROUND)
+ax.set_facecolor('#FFFFFF')
 
 ax.set_title(
-    'How Correctness is Scored: A Worked Example', color=INK, fontsize=15, fontweight='bold', pad=10
+    'How Correctness is Scored: A Worked Example', color=FIG3_BLACK, fontsize=10.5, fontweight='bold', pad=6
 )
 
-ax.text(5, 9.1, 'Reference Set (Q2 - Iris)', ha='center', va='center', fontsize=11.5, color=INK, fontweight='bold')
-ref_colors = [MATCHED_COLOR if t in matched_tools else MISSED_COLOR for t in reference_tools]
-draw_tool_row(ax, reference_tools, y=7.6, box_w=2.1, box_h=1.0, gap=0.25, colors=ref_colors)
+ax.text(5, 9.2, 'Reference Set (Q2 - Iris)', ha='center', va='center', fontsize=8, color=FIG3_BLACK, fontweight='bold')
+ref_colors = [MATCHED_BORDER if t in matched_tools else MISSED_BORDER for t in reference_tools]
+draw_tool_row(ax, reference_tools, y=8.15, box_w=2.25, box_h=0.85, gap=0.1, border_colors=ref_colors)
 
-ax.text(5, 6.4, 'Agent Called', ha='center', va='center', fontsize=11.5, color=INK, fontweight='bold')
-agent_colors = [MATCHED_COLOR for _ in agent_tools]
-draw_tool_row(ax, agent_tools, y=4.9, box_w=2.1, box_h=1.0, gap=0.25, colors=agent_colors)
+ax.text(5, 7.35, 'Agent Called', ha='center', va='center', fontsize=8, color=FIG3_BLACK, fontweight='bold')
+agent_colors = [MATCHED_BORDER for _ in agent_tools]
+draw_tool_row(ax, agent_tools, y=6.55, box_w=2.15, box_h=0.65, gap=0.15, border_colors=agent_colors)
 
-legend_y = 3.9
+legend_y = 5.75
 ax.add_patch(FancyBboxPatch(
-    (2.6, legend_y), 0.4, 0.35, boxstyle="round,pad=0.02,rounding_size=0.05",
-    linewidth=1, edgecolor='#5C1A2E', facecolor=MATCHED_COLOR
+    (3.1, legend_y), 0.32, 0.26, boxstyle="round,pad=0.02,rounding_size=0.04",
+    linewidth=1.3, edgecolor=MATCHED_BORDER, facecolor='#FFFFFF'
 ))
-ax.text(3.15, legend_y + 0.17, 'Matched', ha='left', va='center', fontsize=9.5, color=INK)
+ax.text(3.55, legend_y + 0.13, 'Matched', ha='left', va='center', fontsize=7, color=FIG3_BLACK)
 ax.add_patch(FancyBboxPatch(
-    (5.0, legend_y), 0.4, 0.35, boxstyle="round,pad=0.02,rounding_size=0.05",
-    linewidth=1, edgecolor='#5C1A2E', facecolor=MISSED_COLOR
+    (5.4, legend_y), 0.32, 0.26, boxstyle="round,pad=0.02,rounding_size=0.04",
+    linewidth=1.3, edgecolor=MISSED_BORDER, facecolor='#FFFFFF'
 ))
-ax.text(5.55, legend_y + 0.17, 'Missed', ha='left', va='center', fontsize=9.5, color=INK)
+ax.text(5.85, legend_y + 0.13, 'Missed', ha='left', va='center', fontsize=7, color=FIG3_BLACK)
 
 calc_box = FancyBboxPatch(
-    (1.5, 0.6), 7.0, 2.5, boxstyle="round,pad=0.05,rounding_size=0.15",
-    linewidth=1.5, edgecolor='#5C1A2E', facecolor='#5C1A2E'
+    (1.3, 3.3), 7.4, 1.9, boxstyle="round,pad=0.03,rounding_size=0.08",
+    linewidth=1, edgecolor=FIG3_GREY_BORDER, facecolor=CALC_BG
 )
 ax.add_patch(calc_box)
 ax.text(
-    5, 2.55,
+    5, 4.75,
     f'Precision = {len(matched_tools)}/{len(agent_tools)} = {precision:.3f}',
-    ha='center', va='center', fontsize=11.5, color=TEXT_ON_DARK
+    ha='center', va='center', fontsize=8, color=FIG3_BLACK
 )
 ax.text(
-    5, 1.85,
+    5, 4.25,
     f'Recall = {len(matched_tools)}/{len(reference_tools)} = {recall:.3f}',
-    ha='center', va='center', fontsize=11.5, color=TEXT_ON_DARK
+    ha='center', va='center', fontsize=8, color=FIG3_BLACK
 )
 ax.text(
-    5, 1.15,
+    5, 3.75,
     f'F1 = 2 x (Precision x Recall) / (Precision + Recall) = {f1_example:.3f}',
-    ha='center', va='center', fontsize=11.5, color=TEXT_ON_DARK, fontweight='bold'
+    ha='center', va='center', fontsize=8, color=FIG3_BLACK, fontweight='bold'
 )
 
 plt.tight_layout()
-plt.savefig('figures/figure3_scoring_example.png', dpi=300, facecolor=BACKGROUND)
+plt.savefig('figures/figure3_scoring_example.png', dpi=300, facecolor='#FFFFFF')
 plt.close()
 
 print('Figure 3 saved to figures/figure3_scoring_example.png')
@@ -441,31 +453,33 @@ def build_transition_matrix(sequences, tools):
 
 maroon_cmap = LinearSegmentedColormap.from_list('white_to_maroon', ['#FFFFFF', '#5C1A2E'])
 
-fig6, axes6 = plt.subplots(1, 3, figsize=(21, 7.5), gridspec_kw={'wspace': 0.55})
+FIG6_LEVEL_ORDER = ['minimal', 'enhanced']
+
+fig6, axes6 = plt.subplots(1, 2, figsize=(19, 9.5), gridspec_kw={'wspace': 0.35})
 fig6.patch.set_facecolor(BACKGROUND)
-fig6.suptitle('Tool Transition Probabilities by Description Level', color=INK, fontsize=15, fontweight='bold')
+fig6.suptitle('Tool Transition Probabilities by Description Level', color=INK, fontsize=17, fontweight='bold')
 
 im6 = None
-for panel_idx, (ax6, level) in enumerate(zip(axes6, LEVEL_ORDER)):
+for panel_idx, (ax6, level) in enumerate(zip(axes6, FIG6_LEVEL_ORDER)):
     sequences = df.loc[df['description_level'] == level, 'analysis_tools']
     probs = build_transition_matrix(sequences, top_tools)
     im6 = ax6.imshow(probs, cmap=maroon_cmap, vmin=0, vmax=1)
     ax6.set_xticks(range(len(top_tools)))
     ax6.set_yticks(range(len(top_tools)))
-    ax6.set_xticklabels(top_tools, rotation=45, ha='right', fontsize=7.5, color=INK)
+    ax6.set_xticklabels(top_tools, rotation=45, ha='right', fontsize=11, color=INK)
     if panel_idx == 0:
-        ax6.set_yticklabels(top_tools, fontsize=7.5, color=INK)
+        ax6.set_yticklabels(top_tools, fontsize=11, color=INK)
     else:
         ax6.set_yticklabels([])
-    ax6.set_title(LEVEL_LABELS[level], color=INK, fontsize=12, fontweight='bold')
-    ax6.set_xlabel('To tool', color=INK, fontsize=9)
+    ax6.set_title(LEVEL_LABELS[level], color=INK, fontsize=15, fontweight='bold')
+    ax6.set_xlabel('To tool', color=INK, fontsize=12)
     for i in range(len(top_tools)):
         for j in range(len(top_tools)):
             val = probs[i, j]
             text_color = 'white' if val > 0.5 else INK
-            ax6.text(j, i, f'{val:.2f}', ha='center', va='center', fontsize=6, color=text_color)
+            ax6.text(j, i, f'{val:.2f}', ha='center', va='center', fontsize=9.5, color=text_color)
 
-axes6[0].set_ylabel('From tool', color=INK, fontsize=9)
+axes6[0].set_ylabel('From tool', color=INK, fontsize=12)
 
 cbar = fig6.colorbar(im6, ax=axes6, shrink=0.8, pad=0.02)
 cbar.set_label('Transition probability', color=INK)
