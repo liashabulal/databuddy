@@ -1,11 +1,11 @@
-import os
 import pandas as pd
 from datasets import load_dataset
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.tools import tool
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
 import gradio as gr
+from tool_descriptions import DESCRIPTIONS
 
 # ── Dataset loader ──
 def load_hf_dataset(dataset_name: str, split: str = "train") -> pd.DataFrame:
@@ -16,7 +16,7 @@ def load_hf_dataset(dataset_name: str, split: str = "train") -> pd.DataFrame:
     return df
 
 # ── Tools ──
-def make_tools(df):
+def make_tools(df, descriptions):
 
     @tool
     def get_shape(input: str = "") -> str:
@@ -199,7 +199,14 @@ def make_tools(df):
             else:
                 recommendations.append(f"ENCODE '{col}' with target/frequency encoding — high cardinality ({n})")
         return "\n".join(recommendations) if recommendations else "No major preprocessing issues found."
-
+    # swap descriptions
+    for t in [get_shape, get_missing_values, get_dtypes, get_cardinality,
+              get_descriptive_stats, get_value_counts, get_class_imbalance,
+              get_correlation_matrix, get_target_correlation, get_group_target_analysis,
+              detect_outliers_iqr, plot_histogram, plot_correlation_heatmap,
+              plot_group_target, plot_boxplot, get_preprocessing_recommendations]:
+        t.description = descriptions[t.name]
+        
     return [
         get_shape, get_missing_values, get_dtypes, get_cardinality,
         get_descriptive_stats, get_value_counts, get_class_imbalance,
@@ -209,7 +216,7 @@ def make_tools(df):
     ]
 
 # ── Agent initializer — now takes API key from user ──
-def initialize_agent(api_key, dataset_name, model_name):
+def initialize_agent(api_key, dataset_name, model_name, description_level):
     api_key = api_key.strip()
     dataset_name = dataset_name.strip()
     if not api_key:
@@ -222,7 +229,8 @@ def initialize_agent(api_key, dataset_name, model_name):
             google_api_key=api_key
         )
         df = load_hf_dataset(dataset_name)
-        tools = make_tools(df)
+        descriptions = DESCRIPTIONS[description_level]
+        tools = make_tools(df, descriptions)
         agent = create_react_agent(llm, tools, checkpointer=MemorySaver())
         return agent, f"✅ Dataset '{dataset_name}' loaded — {df.shape[0]} rows, {df.shape[1]} columns. Ask me anything!"
     except Exception as e:
@@ -231,11 +239,12 @@ def initialize_agent(api_key, dataset_name, model_name):
 # ── Chat runner ──
 def run_chat(message, history, agent):
     if agent is None:
-        return "Please load a dataset first.", []
+        return "Please load a dataset first.", [] , []
     try:
         config = {"configurable": {"thread_id": "eda_session"}}
         output = ""
         images = []
+        tool_sequence = []
         for chunk in agent.stream(
             {"messages": [{"role": "user", "content": message}]},
             config=config
@@ -246,14 +255,30 @@ def run_chat(message, history, agent):
                         for block in msg.content:
                             if isinstance(block, dict) and block.get("type") == "text":
                                 output += block["text"] + "\n"
+                    if msg.tool_calls:
+                        for tool_call in msg.tool_calls:
+                            tool_sequence.append(tool_call["name"])
+                            
             if "tools" in chunk:
                 for msg in chunk["tools"]["messages"]:
                     if msg.content and msg.content.endswith(".png"):
                         images.append(msg.content)
-        return output, images
+        return output, images, tool_sequence
     except Exception as e:
-        return f"❌ Error: {str(e)}", []
-
+        return f"❌ Error: {str(e)}", [], []
+        
+# ── Experiment endpoint ──
+def run_experiment(api_key: str, dataset_name: str, description_level: str, question: str)-> tuple[str, list, str]:
+    try:
+        agent, status = initialize_agent(api_key, dataset_name, "gemini-3.1-flash-lite", description_level)
+        if agent is None:
+            return "", [], f"FAILED: {status}"
+        text, images, tool_sequence = run_chat(question, [], agent)
+        if not text and not tool_sequence:
+            return "", [], "FAILED: empty response"
+        return text, tool_sequence, "OK"
+    except Exception as e:
+        return "", [], f"FAILED: {str(e)}"
 # ── UI ──
 custom_css = """
     .gradio-container {
@@ -288,7 +313,7 @@ custom_css = """
     }
 """
 
-with gr.Blocks(css=custom_css) as demo:
+with gr.Blocks() as demo:
 
     gr.HTML("""
     <div style="background-color: #FDFAF4; padding: 10px;">
@@ -351,7 +376,7 @@ with gr.Blocks(css=custom_css) as demo:
     submit_btn = gr.Button("Ask 🐾")
 
     def respond(message, history, agent):
-        text, images = run_chat(message, history, agent)
+        text, images, tools = run_chat(message, history, agent)
         history.append({"role": "user", "content": message})
         history.append({"role": "assistant", "content": text})
         for img in images:
@@ -366,8 +391,9 @@ with gr.Blocks(css=custom_css) as demo:
 
     load_btn.click(
         fn=initialize_agent,
-        inputs=[api_key_input, dataset_input, model_dropdown],  # ── NEW: passes key
+        inputs=[api_key_input, dataset_input, model_dropdown, gr.State("current")],  # ── NEW: passes key
         outputs=[agent_state, status]
     )
-
-demo.launch()
+    gr.api(run_experiment, api_name="run_experiment")
+    
+demo.launch(css=custom_css)
