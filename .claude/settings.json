@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m analysis.error_analysis)",
+      "Bash(python -c ' *)"
+    ]
+  }
+}

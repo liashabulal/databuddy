@@ -7,3 +7,7 @@ pandas
 matplotlib
 seaborn
 gradio
+scipy
+statsmodels
+pingouin
+tabulate
