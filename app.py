@@ -2,7 +2,7 @@ import pandas as pd
 from datasets import load_dataset
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.tools import tool
-from langchain.agents import create_react_agent
+from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
 import gradio as gr
 from tool_descriptions import DESCRIPTIONS
@@ -280,120 +280,121 @@ def run_experiment(api_key: str, dataset_name: str, description_level: str, ques
     except Exception as e:
         return "", [], f"FAILED: {str(e)}"
 # ── UI ──
-custom_css = """
-    .gradio-container {
-        background-color: #FDFAF4 !important;
-        font-family: 'Segoe UI', sans-serif !important;
-    }
-    #load-btn {
-        background-color: #B8C9D9 !important;
-        color: #2A3D4D !important;
-        border: none !important;
-        border-radius: 8px !important;
-    }
-    #load-btn:hover {
-        background-color: #9ab3c7 !important;
-    }
-    .gr-input, .gr-textarea {
-        background-color: white !important;
-        border: 1px solid #B8C9D9 !important;
-        border-radius: 8px !important;
-        color: #2C2C2A !important;
-    }
-    .gr-chatbot .user {
-        background-color: #5C1A2E !important;
-        color: #F5E6C8 !important;
-        border-radius: 14px 14px 4px 14px !important;
-    }
-    .gr-chatbot .bot {
-        background-color: #F5E6C8 !important;
-        color: #2C2C2A !important;
-        border-radius: 14px 14px 14px 4px !important;
-        border: 1px solid #B8C9D9 !important;
-    }
-"""
+if __name__ == "__main__":
+    custom_css = """
+        .gradio-container {
+            background-color: #FDFAF4 !important;
+            font-family: 'Segoe UI', sans-serif !important;
+        }
+        #load-btn {
+            background-color: #B8C9D9 !important;
+            color: #2A3D4D !important;
+            border: none !important;
+            border-radius: 8px !important;
+        }
+        #load-btn:hover {
+            background-color: #9ab3c7 !important;
+        }
+        .gr-input, .gr-textarea {
+            background-color: white !important;
+            border: 1px solid #B8C9D9 !important;
+            border-radius: 8px !important;
+            color: #2C2C2A !important;
+        }
+        .gr-chatbot .user {
+            background-color: #5C1A2E !important;
+            color: #F5E6C8 !important;
+            border-radius: 14px 14px 4px 14px !important;
+        }
+        .gr-chatbot .bot {
+            background-color: #F5E6C8 !important;
+            color: #2C2C2A !important;
+            border-radius: 14px 14px 14px 4px !important;
+            border: 1px solid #B8C9D9 !important;
+        }
+    """
 
-with gr.Blocks() as demo:
+    with gr.Blocks() as demo:
 
-    gr.HTML("""
-    <div style="background-color: #FDFAF4; padding: 10px;">
-        <p style="color: #FDFAF4;">.</p>
-    </div>
-    """)
-
-    gr.HTML("""
-        <div style="margin-top: 60px; background-color: #5C1A2E; padding: 20px 24px; border-radius: 12px; margin-bottom: 16px; display: flex; align-items: center; gap: 16px;">
-            <div style="font-size: 48px;">🐾</div>
-            <div>
-                <h1 style="color: #F5E6C8; margin: 0; font-size: 28px; font-weight: 600;">DataBuddy</h1>
-                <p style="color: #B8C9D9; margin: 0; font-size: 14px; letter-spacing: 0.08em;">Upload · Ask · Understand</p>
-            </div>
+        gr.HTML("""
+        <div style="background-color: #FDFAF4; padding: 10px;">
+            <p style="color: #FDFAF4;">.</p>
         </div>
-    """)
+        """)
 
-    agent_state = gr.State(None)
+        gr.HTML("""
+            <div style="margin-top: 60px; background-color: #5C1A2E; padding: 20px 24px; border-radius: 12px; margin-bottom: 16px; display: flex; align-items: center; gap: 16px;">
+                <div style="font-size: 48px;">🐾</div>
+                <div>
+                    <h1 style="color: #F5E6C8; margin: 0; font-size: 28px; font-weight: 600;">DataBuddy</h1>
+                    <p style="color: #B8C9D9; margin: 0; font-size: 14px; letter-spacing: 0.08em;">Upload · Ask · Understand</p>
+                </div>
+            </div>
+        """)
 
-    # ── NEW: API key input ──
-    api_key_input = gr.Textbox(
-        placeholder="Enter your Gemini API key...",
-        label="Gemini API Key",
-        type="password"  # hides the key as user types
-    )
+        agent_state = gr.State(None)
 
-    model_dropdown = gr.Dropdown(
-    choices=[
-        ("gemini-3.1-flash-lite  ", "gemini-3.1-flash-lite"),
-        ("gemini-3-flash  ", "gemini-3-flash"),
-        ("gemini-2.5-flash  ", "gemini-2.5-flash"),
-        ("gemini-2.0-flash  ", "gemini-2.0-flash"),
-    ],
-    value="gemini-3.1-flash-lite",
-    label="Select Model"
-)
-
-    with gr.Row():
-        dataset_input = gr.Textbox(
-            placeholder="Enter Hugging Face dataset name  e.g. scikit-learn/iris",
-            label="",
-            scale=4
+        # ── NEW: API key input ──
+        api_key_input = gr.Textbox(
+            placeholder="Enter your Gemini API key...",
+            label="Gemini API Key",
+            type="password"  # hides the key as user types
         )
-        load_btn = gr.Button("Load Dataset 🐾", scale=1, elem_id="load-btn")
 
-    status = gr.Textbox(
-        label="",
-        interactive=False,
-        placeholder="Status will appear here...",
+        model_dropdown = gr.Dropdown(
+        choices=[
+            ("gemini-3.1-flash-lite  ", "gemini-3.1-flash-lite"),
+            ("gemini-3-flash  ", "gemini-3-flash"),
+            ("gemini-2.5-flash  ", "gemini-2.5-flash"),
+            ("gemini-2.0-flash  ", "gemini-2.0-flash"),
+        ],
+        value="gemini-3.1-flash-lite",
+        label="Select Model"
     )
 
-    gr.HTML("""
-        <p style="color: #5C1A2E; font-size: 13px; margin: 4px 0 8px;">
-            💡 Try asking: <em>What are the missing values?</em> · <em>Show correlations</em> · <em>Perform a full EDA</em> · <em>Detect outliers</em>
-        </p>
-    """)
+        with gr.Row():
+            dataset_input = gr.Textbox(
+                placeholder="Enter Hugging Face dataset name  e.g. scikit-learn/iris",
+                label="",
+                scale=4
+            )
+            load_btn = gr.Button("Load Dataset 🐾", scale=1, elem_id="load-btn")
 
-    chatbot = gr.Chatbot(height=450)
-    msg_input = gr.Textbox(placeholder="Ask anything about your dataset...", label="")
-    submit_btn = gr.Button("Ask 🐾")
+        status = gr.Textbox(
+            label="",
+            interactive=False,
+            placeholder="Status will appear here...",
+        )
 
-    def respond(message, history, agent):
-        text, images, tools = run_chat(message, history, agent)
-        history.append({"role": "user", "content": message})
-        history.append({"role": "assistant", "content": text})
-        for img in images:
-            history.append({"role": "assistant", "content": gr.Image(img)})
-        return history, ""
+        gr.HTML("""
+            <p style="color: #5C1A2E; font-size: 13px; margin: 4px 0 8px;">
+                💡 Try asking: <em>What are the missing values?</em> · <em>Show correlations</em> · <em>Perform a full EDA</em> · <em>Detect outliers</em>
+            </p>
+        """)
 
-    submit_btn.click(
-        fn=respond,
-        inputs=[msg_input, chatbot, agent_state],
-        outputs=[chatbot, msg_input]
-    )
+        chatbot = gr.Chatbot(height=450)
+        msg_input = gr.Textbox(placeholder="Ask anything about your dataset...", label="")
+        submit_btn = gr.Button("Ask 🐾")
 
-    load_btn.click(
-        fn=initialize_agent,
-        inputs=[api_key_input, dataset_input, model_dropdown, gr.State("current")],  # ── NEW: passes key
-        outputs=[agent_state, status]
-    )
-    gr.api(run_experiment, api_name="run_experiment")
-    
-demo.launch(css=custom_css)
+        def respond(message, history, agent):
+            text, images, tools = run_chat(message, history, agent)
+            history.append({"role": "user", "content": message})
+            history.append({"role": "assistant", "content": text})
+            for img in images:
+                history.append({"role": "assistant", "content": gr.Image(img)})
+            return history, ""
+
+        submit_btn.click(
+            fn=respond,
+            inputs=[msg_input, chatbot, agent_state],
+            outputs=[chatbot, msg_input]
+        )
+
+        load_btn.click(
+            fn=initialize_agent,
+            inputs=[api_key_input, dataset_input, model_dropdown, gr.State("current")],  # ── NEW: passes key
+            outputs=[agent_state, status]
+        )
+        gr.api(run_experiment, api_name="run_experiment")
+
+    demo.launch(css=custom_css)
